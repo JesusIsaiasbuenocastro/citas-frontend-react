@@ -1,68 +1,72 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# VetCitas 🐾
 
-## Available Scripts
+Administrador de citas veterinarias — rediseñado con arquitectura moderna en React. Diseño generado por IA
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## Estructura del proyecto
 
-Runs the app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+```
+src/
+├── App.js                    # Componente raíz: routing y control del modal
+├── index.js                  # Punto de entrada
+├── index.css                 # Sistema de diseño (design tokens + componentes)
+│
+├── context/
+│   └── CitasContext.js       # Estado global: useReducer + Context API
+│
+└── components/
+    ├── Sidebar.js            # Navegación lateral con badges dinámicos
+    ├── Dashboard.js          # Pantalla principal: stats + citas de hoy
+    ├── CitasView.js          # Listado completo con búsqueda y filtros
+    ├── PropietariosView.js   # Propietarios derivados de las citas
+    ├── EstadisticasView.js   # Gráficos CSS: por día y por especie
+    ├── CitaCard.js           # Tarjeta reutilizable de una cita
+    └── ModalCita.js          # Formulario modal: crear y editar
+```
 
-The page will reload if you make edits.<br />
-You will also see any lint errors in the console.
+---
 
-### `npm test`
+## Conceptos implementados
 
-Launches the test runner in the interactive watch mode.<br />
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Context API + useReducer
+En lugar de `useState` simple en App.js, el estado global vive en `CitasContext`.
+Cada modificación se hace a través de acciones tipadas (AGREGAR_CITA, EDITAR_CITA, etc.),
+el mismo patrón de Redux sin dependencias externas.
 
-### `npm run build`
+### Datos derivados vs almacenados
+La vista de Propietarios no almacena datos propios: los deriva del array de citas.
+Esto evita inconsistencias y es una decisión de arquitectura de datos.
 
-Builds the app for production to the `build` folder.<br />
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Componentes controlados
+Todos los formularios son "controlled components": React controla el valor
+de cada input a través del estado, no el DOM.
 
-The build is minified and the filenames include the hashes.<br />
-Your app is ready to be deployed!
+### Separación de responsabilidades
+- **CitaCard**: solo muestra una cita y delega acciones al contexto.
+- **ModalCita**: solo maneja el formulario; llama al contexto para persistir.
+- **Dashboard**: solo consume datos y los presenta; no tiene lógica propia.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Persistencia con localStorage
+El `useEffect` en CitasContext sincroniza el estado con `localStorage`
+cada vez que cambia el array de citas.
 
-### `npm run eject`
+---
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+## Instalación
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```bash
+npm install
+npm start
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+---
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+## Pantallas
 
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
-
-### Analyzing the Bundle Size
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
-
-### Making a Progressive Web App
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
-
-### Advanced Configuration
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
-
-### Deployment
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
-
-### `npm run build` fails to minify
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+| Pantalla | Ruta lógica | Descripción |
+|---|---|---|
+| Dashboard | `/` | Stats del día + citas de hoy + próximas |
+| Citas | `citas` | Listado completo con búsqueda y tabs |
+| Propietarios | `propietarios` | Dueños derivados automáticamente |
+| Estadísticas | `estadisticas` | Gráficos de barras CSS sin librerías externas |
