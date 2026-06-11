@@ -1,39 +1,55 @@
 import React from 'react';
 import { useCitas } from '../context/CitasContext';
+import { useAuth, ROLES } from '../context/AuthContext';
 
 // ─── SIDEBAR ─────────────────────────────────────────────────────────────────
-// Componente de navegación lateral. Recibe dos props:
-// - pantallaActiva: string que indica qué ítem está seleccionado
-// - setPantallaActiva: función para cambiar la pantalla
+// Ahora el sidebar también consume el AuthContext para:
+// 1. Mostrar el nombre e iniciales del usuario real (no hardcodeado)
+// 2. Mostrar el botón de Logout
+// 3. Ocultar ítems según el rol del usuario
 //
-// El sidebar NO tiene estado propio. Es un componente "controlado":
-// su comportamiento depende completamente de las props que recibe.
+// Concepto: Authorization por rol en el frontend.
+// No mostramos la pantalla de Configuración a un recepcionista,
+// aunque intentar navegar directamente tampoco debería funcionar
+// (el ProtectedRoute con rolesPermitidos lo bloquea también).
+// Doble capa de seguridad: UI + guards de ruta.
 
-const navItems = [
+const todosLosNavItems = [
   {
     seccion: 'Principal',
     items: [
-      { id: 'dashboard', label: 'Dashboard', icon: '⊞' },
-      { id: 'citas', label: 'Citas', icon: '📅' },
-      { id: 'propietarios', label: 'Propietarios', icon: '👥' },
+      { id: 'dashboard', label: 'Dashboard', icon: '⊞', roles: null },
+      { id: 'citas', label: 'Citas', icon: '📅', roles: null },
+      { id: 'propietarios', label: 'Propietarios', icon: '👥', roles: null },
     ]
   },
   {
     seccion: 'Análisis',
     items: [
-      { id: 'estadisticas', label: 'Estadísticas', icon: '📊' },
+      { id: 'estadisticas', label: 'Estadísticas', icon: '📊', roles: [ROLES.ADMIN, ROLES.VETERINARIO] },
     ]
   }
 ];
 
 const Sidebar = ({ pantallaActiva, setPantallaActiva }) => {
   const { citasPendientes, citasUrgentes } = useCitas();
+  const { usuario, logout } = useAuth();
 
-  // Badge dinámico: muestra el número de citas urgentes o pendientes por ítem
   const getBadge = (id) => {
     if (id === 'citas') return citasPendientes.length + citasUrgentes.length;
     if (id === 'dashboard') return citasUrgentes.length || null;
     return null;
+  };
+
+  // Filtra ítems que el rol actual puede ver
+  // roles: null → cualquier usuario; roles: [...] → solo esos roles
+  const puedeVer = (item) =>
+    !item.roles || item.roles.includes(usuario?.rol);
+
+  const etiquetaRol = {
+    [ROLES.ADMIN]: 'Administrador',
+    [ROLES.VETERINARIO]: 'Veterinario',
+    [ROLES.RECEPCIONISTA]: 'Recepcionista',
   };
 
   return (
@@ -47,40 +63,53 @@ const Sidebar = ({ pantallaActiva, setPantallaActiva }) => {
       </div>
 
       <nav className="sidebar-nav">
-        {navItems.map(({ seccion, items }) => (
-          <div key={seccion} className="nav-section">
-            <span className="nav-label">{seccion}</span>
-            {items.map(item => {
-              const badge = getBadge(item.id);
-              const activo = pantallaActiva === item.id;
-              return (
-                <button
-                  key={item.id}
-                  className={`nav-item ${activo ? 'nav-item--activo' : ''}`}
-                  onClick={() => setPantallaActiva(item.id)}
-                  aria-current={activo ? 'page' : undefined}
-                >
-                  <span className="nav-icon" aria-hidden="true">{item.icon}</span>
-                  <span className="nav-item-label">{item.label}</span>
-                  {badge > 0 && (
-                    <span className="nav-badge" aria-label={`${badge} pendientes`}>
-                      {badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        ))}
+        {todosLosNavItems.map(({ seccion, items }) => {
+          const itemsVisibles = items.filter(puedeVer);
+          if (itemsVisibles.length === 0) return null;
+          return (
+            <div key={seccion} className="nav-section">
+              <span className="nav-label">{seccion}</span>
+              {itemsVisibles.map(item => {
+                const badge = getBadge(item.id);
+                const activo = pantallaActiva === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    className={`nav-item ${activo ? 'nav-item--activo' : ''}`}
+                    onClick={() => setPantallaActiva(item.id)}
+                    aria-current={activo ? 'page' : undefined}
+                  >
+                    <span className="nav-icon" aria-hidden="true">{item.icon}</span>
+                    <span className="nav-item-label">{item.label}</span>
+                    {badge > 0 && (
+                      <span className="nav-badge" aria-label={`${badge} pendientes`}>
+                        {badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })}
       </nav>
 
+      {/* Footer: usuario real + logout */}
       <div className="sidebar-footer">
         <div className="sidebar-footer-user">
-          <div className="avatar-iniciales">DR</div>
-          <div>
-            <div className="footer-nombre">Dr. Rodríguez</div>
-            <div className="footer-rol">Veterinario</div>
+          <div className="avatar-iniciales">{usuario?.iniciales || '?'}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="footer-nombre">{usuario?.nombre || 'Usuario'}</div>
+            <div className="footer-rol">{etiquetaRol[usuario?.rol] || usuario?.rol}</div>
           </div>
+          <button
+            className="logout-btn"
+            onClick={logout}
+            title="Cerrar sesión"
+            aria-label="Cerrar sesión"
+          >
+            ⏻
+          </button>
         </div>
       </div>
     </aside>

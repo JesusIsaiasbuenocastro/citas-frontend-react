@@ -1,6 +1,6 @@
 # VetCitas 🐾
 
-Administrador de citas veterinarias — rediseñado con arquitectura moderna en React. Diseño generado por IA
+Administrador de citas veterinarias — rediseñado con arquitectura moderna en React.
 
 ---
 
@@ -27,7 +27,7 @@ src/
 
 ---
 
-## Conceptos implementados
+## Conceptos implementados (para el currículo)
 
 ### Context API + useReducer
 En lugar de `useState` simple en App.js, el estado global vive en `CitasContext`.
