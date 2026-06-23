@@ -1,71 +1,97 @@
-import React,{ Fragment, useState, useEffect } from 'react';
-import Formulario from './components/Formulario'
-import Cita from './components/Cita'
+import React, { useState } from 'react';
+import { AuthProvider } from './context/AuthContext';
+import { CitasProvider } from './context/CitasContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import LoginPage from './components/LoginPage';
+import Sidebar from './components/Sidebar';
+import Dashboard from './components/Dashboard';
+import CitasView from './components/CitasView';
+import PropietariosView from './components/PropietariosView';
+import EstadisticasView from './components/EstadisticasView';
+import ModalCita from './components/ModalCita';
+import './index.css';
+
+// ─── APP ──────────────────────────────────────────────────────────────────────
+// Componente raíz. Ahora tiene dos capas de providers:
+//
+// 1. AuthProvider (exterior): siempre activo, maneja si hay sesión o no
+// 2. CitasProvider (interior): solo activo cuando hay sesión
+//
+// El orden importa. CitasProvider está adentro porque los datos de citas
+// solo tienen sentido cuando hay un usuario autenticado.
+// Si el usuario hace logout, CitasProvider se desmonta y su estado se limpia.
+//
+// Árbol de componentes:
+//   AuthProvider
+//     └── ProtectedRoute
+//           ├── Si NO autenticado → LoginPage
+//           └── Si SÍ autenticado → CitasProvider
+//                                     └── AppShell (sidebar + pantallas + modal)
 
 function App() {
+  return (
+    <AuthProvider>
+      <ProtectedRoute
+        fallbackLogin={<LoginPage />}
+      >
+        {/* CitasProvider solo vive aquí adentro — si el usuario hace logout,
+            este árbol se desmonta y las citas en memoria se limpian */}
+        <CitasProvider>
+          <AppShell />
+        </CitasProvider>
+      </ProtectedRoute>
+    </AuthProvider>
+  );
+}
 
-  //Citas en local storage
-  let citasIniciales = JSON.parse (localStorage.getItem('citas'));
-  if(!citasIniciales){
-    citasIniciales =[];
-  }
+// ─── APP SHELL ────────────────────────────────────────────────────────────────
+// Separamos el "shell" (estructura de la app autenticada) en su propio
+// componente para mantener App() limpio. AppShell solo se monta cuando
+// hay sesión activa.
+function AppShell() {
+  const [pantallaActiva, setPantallaActiva] = useState('dashboard');
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [citaEditando, setCitaEditando] = useState(null);
 
-  //Arreglo de citas
-  const[citas, guardarCitas] = useState(citasIniciales);
+  const abrirModal = (cita = null) => {
+    setCitaEditando(cita);
+    setModalAbierto(true);
+  };
 
-  //Use efect para realizar ciertas operaciones cuando el state cambia
-  //Se ejecuta cuando el componente esta listo y cuando hay cambios en el componente
-  useEffect ( () => {
-    let citasIniciales = JSON.parse (localStorage.getItem('citas'));
-    if(citasIniciales){
-      localStorage.setItem('citas',JSON.stringify(citas));
-    }else{
-      localStorage.setItem('citas', JSON.stringify([]));
+  const cerrarModal = () => {
+    setModalAbierto(false);
+    setCitaEditando(null);
+  };
+
+  const renderPantalla = () => {
+    switch (pantallaActiva) {
+      case 'dashboard':     return <Dashboard abrirModal={abrirModal} />;
+      case 'citas':         return <CitasView abrirModal={abrirModal} />;
+      case 'propietarios':  return <PropietariosView />;
+      case 'estadisticas':  return <EstadisticasView />;
+      default:              return <Dashboard abrirModal={abrirModal} />;
     }
-
-  }, [citas]);
-
-  //Funcion que tome las citas actuales y agregue las citas
-  const crearCita = cita =>{
-    guardarCitas([
-      //crear una copia del estate original
-      ...citas, cita
-    ]);
-  }
-
-  //Funcion que elimina una cita por el ID 
-  const eliminarCita= id => {
-    const nuevasCitas = citas.filter(cita => cita.id !== id);
-    guardarCitas(nuevasCitas);
-  }
-
-  //Mensaje condicional
-  const titulo = citas.length === 0 ? 'No hay citas' :  'Administra tus citas';
+  };
 
   return (
-    <Fragment>
-      <h1>Administrador de pacientes</h1>
-      <div className="container">
-        <div className="row">
-          <div className="one-half column">
-            <Formulario
-              crearCita={crearCita}
-            />
-          </div>
-          <div className="one-half column">
-            <h2>{titulo} </h2>
-            {citas.map(cita => (
-              <Cita
-                  key={cita.id}
-                  cita={cita}
-                  eliminarCita={eliminarCita}
-              />
-            ))}
-          </div>
-        </div>
+    <>
+      <div className="app-shell">
+        <Sidebar
+          pantallaActiva={pantallaActiva}
+          setPantallaActiva={setPantallaActiva}
+        />
+        <main className="main-content">
+          {renderPantalla()}
+        </main>
       </div>
-      
-    </Fragment>
+
+      {modalAbierto && (
+        <ModalCita
+          citaEditando={citaEditando}
+          cerrarModal={cerrarModal}
+        />
+      )}
+    </>
   );
 }
 
