@@ -3,7 +3,11 @@
 Administrador de citas veterinarias — rediseñado con arquitectura moderna en React.
 
 ---
-
+## Publicación Netlify
+ 
+https://vet-citas-de4113.netlify.app/  
+ 
+ ---
 ## Estructura del proyecto
 
 ```
